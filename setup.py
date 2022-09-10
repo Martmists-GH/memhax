@@ -11,12 +11,12 @@ except FileNotFoundError:
 
 setup(
     name="memhax",
-    version="0.0.1",
+    version="0.1.0",
     packages=['memhax', 'memhax.cpython'],
     description="A Python library for getting access to raw memory and internals",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    python_requires='>=3.9,<3.10',  # TODO: Support other python versions in code
+    python_requires='>=3.11,<3.12',  # TODO: Support other python versions
     classifiers=[
         "Development Status :: 4 - Beta",
         "Programming Language :: Python :: 3.9",

@@ -23,14 +23,13 @@ with memory(0x12345678) as mem:
 ```python
 from memhax.cpython.primitives import PyLongObject
 
-num_obj = PyLongObject(id(1234))
-print(num_obj.struct_str())
+print(PyLongObject)
 
 # struct PyLongObject {
-#     Py_ssize_t      ob_refcnt;
-#     PyTypeObject*   ob_type;
-#     Py_ssize_t      ob_size;
-#     unsigned int[1] ob_digit;
+#     Py_ssize_t    ob_refcnt;
+#     PyTypeObject* ob_type;
+#     Py_ssize_t    ob_size;
+#     uint32_t[]    ob_digit;
 # }
 ```
 
@@ -47,6 +46,6 @@ print(tuple_obj.ob_size())  # => 3
 
 # Replace an item in the tuple
 new_item = [my_tuple, b"123"]
-tuple_obj.ob_item[0] = id(new_item)
+tuple_obj.ob_item[0].raw(id(new_item))
 print(my_tuple)  # => ([(...), b'123'], 'abc', 3.5)
 ```

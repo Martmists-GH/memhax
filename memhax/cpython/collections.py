@@ -1,71 +1,38 @@
 from memhax.cpython.object import PyVarObject, PyObject
-from memhax.native import Pointer, DynamicSizeArray, Char
-from memhax.proxy import Struct
+from memhax.native.native import Py_ssize_t
+from memhax.native.native_complex import PropertySizeArray, Pointer, StaticSizeArray
+from memhax.native.native_size import uint64_t
+from memhax.native.structs import Struct
 
 
-class PyTupleObject(PyVarObject):
-    def __init__(self, addr: int):
-        super().__init__(addr)
-        self.array("ob_item", lambda _addr: Pointer(_addr, PyObject), self.ob_size)
+class PyTupleObject(PyVarObject, Struct[tuple]):
+    ob_item: PropertySizeArray[Pointer[PyObject], lambda self: self.ob_size()]  # how am I gonna pass `self` [PyTupleObject] to this function
 
 
-class PyListObject(PyVarObject):
-    def __init__(self, addr: int):
-        super().__init__(addr)
-        self.pointer("ob_item", lambda _addr: DynamicSizeArray(_addr, lambda _addr2: Pointer(_addr2, PyObject), self.allocated))
-        self.ssize_t("allocated")
+class PyListObject(PyVarObject, Struct[list]):
+    ob_item: Pointer[PropertySizeArray[Pointer[PyObject], lambda self: self.allocated()]]
+    allocated: Py_ssize_t
 
 
-class PyDictObject(PyObject):
-    def __init__(self, addr: int):
-        super().__init__(addr)
-        self.ssize_t("ma_used")
-        self.uint("ma_version_tag_1")
-        self.uint("ma_version_tag_2")
-        self.pointer("ma_keys", PyDictKeysObject)
-        self.pointer("ma_values", lambda _addr: DynamicSizeArray(_addr, lambda _addr2: Pointer(_addr2, PyObject), self.ma_used))
+class _PySetEntry(Struct[None]):
+    key: Pointer[PyObject]
+    hash: Py_ssize_t
 
 
-class PyDictKeysObject(Struct):
-    def __init__(self, addr: int):
-        super().__init__(addr)
-        self.ssize_t("dk_refcnt")
-        self.ssize_t("dk_size")
-        self.pointer("dk_lookup")
-        self.ssize_t("dk_usable")
-        self.ssize_t("dk_nentries")
-        # TODO: dk_entries
-
-        def get_indices_size() -> int:
-            size = self.dk_size()
-            if size <= 0xff:
-                return 1
-            elif size <= 0xffff:
-                return 2
-            elif size <= 0xffffffff:
-                return 4
-            else:
-                return 8
-
-        self.array("dk_indices", Char, get_indices_size)
-        # TODO: dk_entries?
+class PySetObject(PyObject, Struct[set]):
+    fill: Py_ssize_t
+    used: Py_ssize_t
+    mask: Py_ssize_t
+    table: Pointer[PropertySizeArray[_PySetEntry, lambda self: self.fill()]]
+    hash: Py_ssize_t
+    finger: Py_ssize_t
+    smalltable: StaticSizeArray[_PySetEntry, 8]
+    weakreflist: Pointer[PyObject]
 
 
-class PySetObject(PyObject):
-    def __init__(self, addr: int):
-        super().__init__(addr)
-        self.ssize_t("fill")
-        self.ssize_t("used")
-        self.ssize_t("mask")
-        self.pointer("table", lambda _addr: DynamicSizeArray(_addr, _PySetEntry, self.fill))
-        self.ssize_t("hash")
-        self.ssize_t("finger")
-        self.array("smalltable", _PySetEntry, 8)
-        self.pointer("weakreflist", PyObject)
-
-
-class _PySetEntry(Struct):
-    def __init__(self, addr: int):
-        super().__init__(addr)
-        self.pointer("key", PyObject)
-        self.ssize_t("hash")
+class PyDictObject(PyObject, Struct[dict]):
+    ma_used: Py_ssize_t
+    ma_version_tag: uint64_t
+    # TODO: PyDictKeysObject; It's a fairly complex struct so not implemented yet
+    ma_keys: Pointer
+    ma_values: Pointer[PropertySizeArray[Pointer[PyObject], lambda self: self.ma_used()]]
